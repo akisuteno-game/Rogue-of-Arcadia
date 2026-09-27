@@ -649,29 +649,16 @@ document.getElementById('overBtn').addEventListener('click', ()=>{
   logEl.innerHTML=''; newGame();
 });
 
-function fitCanvasBox(){
-  const wrap=document.querySelector('.wrap');
-  const vh=(window.visualViewport?window.visualViewport.height:window.innerHeight);
-  let used=0;
-  for(const child of wrap.children){ if(child!==box) used+=child.getBoundingClientRect().height; }
-  const gap=parseFloat(getComputedStyle(wrap).gap)||6;
-  used+=gap*(wrap.children.length-1);
-  const h1=document.querySelector('h1');
-  const bodyStyle=getComputedStyle(document.body);
-  const chrome=(h1?h1.getBoundingClientRect().height:0)+parseFloat(bodyStyle.paddingTop)+parseFloat(bodyStyle.paddingBottom)+6;
-  const availH=Math.max(120, vh-used-chrome-10);
-  const availW=Math.max(200, wrap.clientWidth);
-  const ratio=640/384;
-  let w=availW, h=w/ratio;
-  if(h>availH){ h=availH; w=h*ratio; }
-  box.style.width=Math.round(w)+'px';
-  box.style.height=Math.round(h)+'px';
+function resizeCanvas(){
+  const rect=box.getBoundingClientRect();
+  cv.width=Math.max(200,Math.round(rect.width));
+  cv.height=Math.max(150,Math.round(rect.height));
+  ctx.imageSmoothingEnabled=false;
 }
-window.addEventListener('resize', fitCanvasBox);
-window.addEventListener('orientationchange', ()=>setTimeout(fitCanvasBox,80));
-if(window.visualViewport) window.visualViewport.addEventListener('resize', fitCanvasBox);
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', ()=>setTimeout(resizeCanvas,80));
+if(window.visualViewport) window.visualViewport.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
 newGame();
-fitCanvasBox();
-requestAnimationFrame(fitCanvasBox);
 })();

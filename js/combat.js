@@ -1,20 +1,21 @@
 "use strict";
 // ---- Collision, attacking, and the per-frame game-state update ----
 function tileAt(g,x,y){ if(x<0||y<0||x>=MW||y>=MH) return 1; return g[y][x]; }
+function isBlocking(v){ return v===1||v===7; }
 
 function moveEntity(e,dx,dy,grid){
   if(dx!==0){
     const nx=e.x+dx, edge=nx+(dx>0?e.r:-e.r), tx=Math.floor(edge);
     const y1=Math.floor(e.y-e.r+0.001), y2=Math.floor(e.y+e.r-0.001);
     let blocked=false;
-    for(let ty=y1; ty<=y2; ty++){ if(tileAt(grid,tx,ty)===1){blocked=true;break;} }
+    for(let ty=y1; ty<=y2; ty++){ if(isBlocking(tileAt(grid,tx,ty))){blocked=true;break;} }
     if(!blocked) e.x=nx;
   }
   if(dy!==0){
     const ny=e.y+dy, edge=ny+(dy>0?e.r:-e.r), ty=Math.floor(edge);
     const x1=Math.floor(e.x-e.r+0.001), x2=Math.floor(e.x+e.r-0.001);
     let blocked=false;
-    for(let tx=x1; tx<=x2; tx++){ if(tileAt(grid,tx,ty)===1){blocked=true;break;} }
+    for(let tx=x1; tx<=x2; tx++){ if(isBlocking(tileAt(grid,tx,ty))){blocked=true;break;} }
     if(!blocked) e.y=ny;
   }
 }
@@ -87,15 +88,7 @@ function update(dt){
   p.atkPulse=Math.max(0,p.atkPulse-dt*4);
   if(atkActive && atkHasAim && p.atkCd<=0){ doAttack(); }
 
-  if(f.isTown){
-    const ttx=Math.floor(p.x), tty=Math.floor(p.y);
-    if(f.grid[tty] && f.grid[tty][ttx]===4){
-      log('迷宮の入り口へ足を踏み入れた。');
-      state.floor=newFloor(1, p);
-      updateHUD();
-    }
-    return;
-  }
+  if(f.isTown){ updateTown(dt); return; }
 
   for(let i=f.items.length-1;i>=0;i--){
     const it=f.items[i], dx=(it.x+0.5)-p.x, dy=(it.y+0.5)-p.y;

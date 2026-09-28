@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>ROGUE OF ARCADIA — ローグ・オブ・アルカディア</title>
+<style>
+:root{
+  --bg:#100c14; --panel:#1b1522; --panel-line:#332b3d;
+  --ember:#e0793c; --ember-dim:#8a4a26;
+  --text:#e8dfe6; --text-dim:#8f8398;
+  --hp:#c94f4f; --xp:#4fa5c9;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box; -webkit-user-select:none; user-select:none;}
+html,body{height:100%; overflow:hidden; overscroll-behavior:none;}
+body{
+  margin:0; background:#000; color:var(--text);
+  font-family:'Courier New',ui-monospace,monospace;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+#canvasBox{
+  position:fixed; inset:0; background:#000; overflow:hidden; touch-action:none;
+}
+canvas{width:100%; height:100%; image-rendering:pixelated; display:block;}
+#joyZone{position:absolute; width:112px; height:112px; touch-action:none; z-index:5; display:none;}
+#joyBase{position:absolute; inset:0; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2);}
+#joyThumb{position:absolute; width:48px; height:48px; left:32px; top:32px; border-radius:50%; background:rgba(224,121,60,0.55); border:1px solid rgba(224,121,60,0.85); pointer-events:none;}
+#atkJoyZone{position:absolute; width:112px; height:112px; touch-action:none; z-index:5; display:none;}
+#atkJoyBase{position:absolute; inset:0; border-radius:50%; background:rgba(255,226,122,0.09); border:1px solid rgba(255,226,122,0.3);}
+#atkJoyThumb{position:absolute; width:48px; height:48px; left:32px; top:32px; border-radius:50%; background:rgba(255,226,122,0.55); border:1px solid rgba(255,226,122,0.9); pointer-events:none;}
+.hud{
+  position:absolute; top:calc(12px + env(safe-area-inset-top,0px)); left:12px; right:12px;
+  display:flex; justify-content:space-between; font-size:14px; color:var(--text-dim);
+  text-shadow:0 1px 4px rgba(0,0,0,0.9); pointer-events:none; z-index:4;
+}
+.hud b{color:var(--text);}
+.bars{
+  position:absolute; top:calc(36px + env(safe-area-inset-top,0px)); left:12px; width:230px;
+  display:flex; flex-direction:column; gap:4px; z-index:4; pointer-events:none;
+}
+.barrow{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--text-dim); text-shadow:0 1px 3px rgba(0,0,0,0.9);}
+.barrow span.lbl{width:26px;}
+.bartrack{flex:1; height:9px; background:rgba(27,21,34,0.65); border:1px solid var(--panel-line); border-radius:2px; overflow:hidden;}
+.barfill{height:100%; transition:width 0.2s;}
+.hpfill{background:var(--hp);} .xpfill{background:var(--xp);}
+.itembar{
+  position:absolute; left:50%; transform:translateX(-50%); bottom:calc(14px + env(safe-area-inset-bottom,0px));
+  display:flex; gap:8px; z-index:4;
+}
+.itemslot{
+  width:46px; height:46px; background:rgba(27,21,34,0.6); border:1px solid var(--panel-line);
+  border-radius:7px; position:relative; display:flex; align-items:center; justify-content:center;
+  font-size:22px; flex-shrink:0;
+}
+.itemslot.empty{opacity:0.28;}
+.itemslot.usable{cursor:pointer;}
+.itemslot .count{position:absolute; bottom:0px; right:3px; font-size:10.5px; color:var(--text); text-shadow:0 0 2px #000;}
+#log{
+  position:absolute; right:12px; top:calc(12px + env(safe-area-inset-top,0px)); width:240px; max-height:72px;
+  background:rgba(27,21,34,0.55); border:1px solid var(--panel-line);
+  border-radius:2px; font-size:11px; color:var(--text-dim); padding:5px 8px;
+  overflow-y:auto; line-height:1.4; z-index:4; pointer-events:none;
+}
+#log div:last-child{color:var(--ember);}
+#overlay{
+  position:fixed; inset:0; background:rgba(8,5,10,0.92); display:none;
+  align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:10;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+#overlay h2{color:var(--ember); font-size:20px; letter-spacing:0.08em;}
+#overlay p{color:var(--text-dim); font-size:13px; text-align:center; max-width:280px;}
+#overlay button{
+  background:var(--ember-dim); color:#fff; border:1px solid var(--ember);
+  padding:10px 22px; font-size:13px; border-radius:3px; cursor:pointer; font-family:inherit;
+}
+#overlay button:hover{background:var(--ember);}
+</style>
+</head>
+<body>
+<div id="canvasBox">
+  <canvas id="cv" width="640" height="384"></canvas>
+  <div class="hud">
+    <span id="locLabel">地下 <b>1</b>階</span>
+    <span>Lv.<b id="lvNum">1</b></span>
+    <span>最高到達: <b id="bestFloor">1</b>F</span>
+  </div>
+  <div class="bars">
+    <div class="barrow"><span class="lbl">HP</span><div class="bartrack"><div class="barfill hpfill" id="hpBar" style="width:100%"></div></div><span id="hpText">10/10</span></div>
+    <div class="barrow"><span class="lbl">EXP</span><div class="bartrack"><div class="barfill xpfill" id="xpBar" style="width:0%"></div></div><span id="xpText">0/10</span></div>
+  </div>
+  <div id="log"></div>
+  <div class="itembar" id="itembar"></div>
+  <div id="joyZone"><div id="joyBase"></div><div id="joyThumb"></div></div>
+  <div id="atkJoyZone"><div id="atkJoyBase"></div><div id="atkJoyThumb"></div></div>
+</div>
+
+<div id="overlay">
+  <h2 id="overTitle">力尽きた…</h2>
+  <p id="overText"></p>
+  <button id="overBtn">最初からやり直す</button>
+</div>
+
+<script src="js/constants.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/render.js"></script>
+<script src="js/dungeon.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/input.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -113,8 +113,20 @@ function drawCreatureAt(px,py,facing,bobAmt,parts,flashAmt,alpha,seed){
 
 function render(){
   const f=state.floor, p=state.player;
-  ctx.fillStyle=PALETTE.wallLo; ctx.fillRect(0,0,cv.width,cv.height);
   updateCamera(p, false);
+  const sx=Math.max(0,Math.floor(camPX/TS)-1), ex=Math.min(MW-1,Math.ceil((camPX+cv.width)/TS));
+  const sy=Math.max(0,Math.floor(camPY/TS)-1), ey=Math.min(MH-1,Math.ceil((camPY+cv.height)/TS));
+  const ppx=p.x*TS-camPX, ppy=p.y*TS-camPY;
+
+  if(f.isTown){
+    const sky=ctx.createLinearGradient(0,0,0,cv.height);
+    sky.addColorStop(0,'#bfe8f7'); sky.addColorStop(1,'#eaf7d8');
+    ctx.fillStyle=sky; ctx.fillRect(0,0,cv.width,cv.height);
+    drawTownWorld(f, sx, ex, sy, ey, ()=>drawCreatureAt(ppx,ppy,p.facing,1.2,c=>playerParts(c,p.atkPulse),p.flash,1,p.x));
+    return;
+  }
+
+  ctx.fillStyle=PALETTE.wallLo; ctx.fillRect(0,0,cv.width,cv.height);
 
   let shakeX=0, shakeY=0;
   if(state.shake>0.01){
@@ -125,8 +137,6 @@ function render(){
   ctx.save();
   ctx.translate(shakeX,shakeY);
 
-  const sx=Math.max(0,Math.floor(camPX/TS)-1), ex=Math.min(MW-1,Math.ceil((camPX+cv.width)/TS));
-  const sy=Math.max(0,Math.floor(camPY/TS)-1), ey=Math.min(MH-1,Math.ceil((camPY+cv.height)/TS));
   for(let y=sy;y<=ey;y++) for(let x=sx;x<=ex;x++){
     const t=f.grid[y][x];
     if(t===1) drawWall(x,y); else { drawFloor(x,y,t===3); if(t===2) drawStairs(x,y); else if(t===4) drawPortal(x,y); }
@@ -142,7 +152,6 @@ function render(){
     const partsFn=m.type==='goblin'?goblinParts:m.type==='bat'?batParts:m.type==='skeleton'?skeletonParts:ratParts;
     drawCreatureAt(mpx,mpy,m.facing,bobAmt,partsFn,m.flash,alpha,m.x);
   }
-  const ppx=p.x*TS-camPX, ppy=p.y*TS-camPY;
   drawCreatureAt(ppx,ppy,p.facing,1.2,c=>playerParts(c,p.atkPulse),p.flash,1,p.x);
   if(atkActive && atkHasAim){
     const ang=Math.atan2(p.aimY,p.aimX), ha=ATTACK_HALF_ANGLE, rr=ATTACK_RANGE*TS;

@@ -66,6 +66,14 @@ canvas{width:100%; height:100%; image-rendering:pixelated; display:block;}
   overflow-y:auto; line-height:1.4; z-index:4; pointer-events:none;
 }
 #log div:last-child{color:var(--ember);}
+#npcDialogue{
+  position:absolute; left:50%; bottom:calc(74px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%);
+  display:none; flex-direction:column; gap:2px; min-width:220px; max-width:80vw;
+  background:rgba(30,22,14,0.85); border:1px solid #c99a4a; border-radius:8px;
+  padding:8px 14px; z-index:4; pointer-events:none;
+}
+#npcDialogue .who{font-size:11px; color:#ffd27a; font-weight:bold;}
+#npcDialogue .line{font-size:13px; color:#fff3e0;}
 #overlay{
   position:fixed; inset:0; background:rgba(8,5,10,0.92); display:none;
   align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:10;
@@ -94,6 +102,7 @@ canvas{width:100%; height:100%; image-rendering:pixelated; display:block;}
   </div>
   <div id="log"></div>
   <div class="itembar" id="itembar"></div>
+  <div id="npcDialogue"><span class="who"></span><span class="line"></span></div>
   <div id="joyZone"><div id="joyBase"></div><div id="joyThumb"></div></div>
   <div id="atkJoyZone"><div id="atkJoyBase"></div><div id="atkJoyThumb"></div></div>
 </div>
@@ -110,6 +119,7 @@ canvas{width:100%; height:100%; image-rendering:pixelated; display:block;}
 <script src="js/sprites.js"></script>
 <script src="js/render.js"></script>
 <script src="js/dungeon.js"></script>
+<script src="js/town.js"></script>
 <script src="js/combat.js"></script>
 <script src="js/input.js"></script>
 <script src="js/main.js"></script>

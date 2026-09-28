@@ -53,3 +53,13 @@ function usePotion(){
   log('薬草を使った。HPが'+heal+'回復した。');
   updateHUD(); renderInventory();
 }
+
+function openShop(npc){
+  const box=document.getElementById('npcDialogue');
+  box.querySelector('.who').textContent=npc.name;
+  box.querySelector('.line').textContent=npc.lines[rnd(npc.lines.length)];
+  box.style.display='flex';
+}
+function closeShop(){
+  document.getElementById('npcDialogue').style.display='none';
+}

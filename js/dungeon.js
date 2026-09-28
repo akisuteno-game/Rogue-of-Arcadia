@@ -11,18 +11,7 @@ function carveCorridor(grid,ax,ay,bx,by){
   }
 }
 
-function newTown(player){
-  const grid=[]; for(let y=0;y<MH;y++) grid.push(new Array(MW).fill(1));
-  const cx=Math.floor(MW/2), cy=Math.floor(MH/2);
-  const w=18, h=13;
-  const x0=cx-Math.floor(w/2), y0=cy-Math.floor(h/2);
-  for(let y=y0;y<y0+h;y++) for(let x=x0;x<x0+w;x++) grid[y][x]=0;
-  const entX=cx, entY=y0+1;
-  grid[entY][entX]=4;
-  player.x=cx+0.5; player.y=y0+h-2+0.5; player.kx=0; player.ky=0; player.flash=0;
-  updateCamera(player, true);
-  return {grid, monsters:[], items:[], stairsX:-1, stairsY:-1, depth:0, isTown:true};
-}
+// newTown() now lives in town.js (full Arcadia hub layout with NPCs & decor)
 
 function newFloor(depth, player){
   const grid=[]; for(let y=0;y<MH;y++) grid.push(new Array(MW).fill(1));

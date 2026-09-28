@@ -55,3 +55,14 @@ function skeletonParts(c){
   c.fillStyle=PALETTE.boneWeapon; c.fillRect(5,-8,2,13);
   c.fillStyle=PALETTE.boneShadow; c.fillRect(4,-9,4,2);
 }
+function merchantParts(c){
+  c.fillStyle='#6a4a2c'; c.fillRect(-4,6,3,3); c.fillRect(2,6,3,3);
+  c.fillStyle='#8a5a2c'; c.fillRect(-5,-2,11,9);
+  c.fillStyle='#c99a4a'; c.fillRect(-5,-3,11,3);
+  c.fillStyle='#5a3a1c'; c.fillRect(-5,2,11,2);
+  c.fillStyle='#e8c18a'; c.fillRect(-3,-9,7,6);
+  c.fillStyle='#c9963c'; c.fillRect(-4,-12,9,4);
+  c.fillStyle='#8a5a2c'; c.fillRect(-5,-9,2,3); c.fillRect(4,-9,2,3);
+  c.fillStyle='#2a2016'; c.fillRect(-2,-7,1,1); c.fillRect(1,-7,1,1);
+  c.fillStyle='#5a3a1c'; c.fillRect(-2,-5,4,1);
+}

@@ -12,48 +12,107 @@ const TOWN={
   flowers:['#ff8fa3','#ffd166','#ffffff','#b8a1ff']
 };
 
+function carvePath(grid,ax,ay,bx,by,seed){
+  const dx=bx-ax, dy=by-ay, len=Math.hypot(dx,dy)||1;
+  const nx=-dy/len, ny=dx/len;
+  const steps=Math.ceil(len*1.4)+2;
+  for(let i=0;i<=steps;i++){
+    const t=i/steps;
+    const wob=Math.sin(t*Math.PI)*Math.sin(t*6.2+seed)*2.1;
+    const px=Math.round(ax+dx*t+nx*wob), py=Math.round(ay+dy*t+ny*wob);
+    for(let oy=-1;oy<=1;oy++) for(let ox=-1;ox<=1;ox++){
+      if(Math.abs(ox)+Math.abs(oy)>1) continue;
+      const gx=px+ox, gy=py+oy;
+      if(gy<1||gx<1||gy>=MH-1||gx>=MW-1) continue;
+      if(grid[gy][gx]!==7 && grid[gy][gx]!==4) grid[gy][gx]=5;
+    }
+  }
+}
+
 function newTown(player){
   const grid=[]; for(let y=0;y<MH;y++) grid.push(new Array(MW).fill(1));
-  const x0=Math.floor(MW/2)-TOWN_W/2, y0=Math.floor(MH/2)-TOWN_H/2;
-  const T=(rx,ry,v)=>{ grid[y0+ry][x0+rx]=v; };
-  const R=(rx,ry,w,h,v)=>{ for(let j=0;j<h;j++) for(let i=0;i<w;i++) T(rx+i,ry+j,v); };
-  R(1,1,TOWN_W-2,TOWN_H-2,6);        // grass
-  R(9,6,14,10,5);                    // central plaza
-  R(15,2,3,4,5);                     // road north to the dungeon gate
-  R(15,16,3,5,5);                    // road south (spawn)
-  R(1,10,8,2,5); R(23,10,8,2,5);     // roads west / east
-  const decor=[];
-  const add=(kind,rx,ry,w,h,extra)=>{ decor.push(Object.assign({kind,x:x0+rx,y:y0+ry,w,h},extra||{})); };
-  const solid=(rx,ry,w,h)=>R(rx,ry,w,h,7);
+  const cx0=Math.floor(MW/2), cy0=Math.floor(MH/2);
+  const seedA=Math.random()*10, seedB=Math.random()*10;
+  const clearR=(ang)=>15*(1+0.34*Math.sin(ang*3+seedA)+0.16*Math.sin(ang*5+seedA*1.6));
+  const plazaR=(ang)=>6.5*(1+0.3*Math.sin(ang*4+seedB)+0.16*Math.sin(ang*7+seedB*1.3));
 
-  T(16,2,4);                          // dungeon entrance (portal)
-  solid(14,2,1,1); add('pillar',14,2,1,1);
-  solid(18,2,1,1); add('pillar',18,2,1,1);
-  add('sign',16,1,1,1,{text:'迷宮の入り口'});
+  for(let ry=-17;ry<=17;ry++) for(let rx=-17;rx<=17;rx++){
+    const gx=cx0+rx, gy=cy0+ry; if(gx<1||gy<1||gx>=MW-1||gy>=MH-1) continue;
+    const dist=Math.hypot(rx,ry), ang=Math.atan2(ry,rx);
+    if(dist<clearR(ang)) grid[gy][gx]=6;
+  }
+  for(let ry=-9;ry<=9;ry++) for(let rx=-9;rx<=9;rx++){
+    const gx=cx0+rx, gy=cy0+ry;
+    const dist=Math.hypot(rx,ry), ang=Math.atan2(ry,rx);
+    if(dist<plazaR(ang)) grid[gy][gx]=5;
+  }
 
-  [[3,3,0],[25,3,1],[3,14,2],[25,14,3]].forEach(([hx,hy,ri])=>{
-    solid(hx,hy,4,3); add('house',hx,hy,4,3,{roof:TOWN.roofs[ri]});
+  const decor=[]; const add=(kind,gx,gy,w,h,extra)=>decor.push(Object.assign({kind,x:gx,y:gy,w,h},extra||{}));
+  const solid=(gx,gy,w,h)=>{ for(let j=0;j<h;j++) for(let i=0;i<w;i++){ if(grid[gy+j]) grid[gy+j][gx+i]=7; } };
+
+  const portalAng=-Math.PI/2+0.15, portalDist=clearR(portalAng)+3.5;
+  const portalX=Math.round(cx0+Math.cos(portalAng)*portalDist), portalY=Math.round(cy0+Math.sin(portalAng)*portalDist);
+  grid[portalY][portalX]=4;
+  solid(portalX-2,portalY,1,1); add('pillar',portalX-2,portalY,1,1);
+  solid(portalX+2,portalY,1,1); add('pillar',portalX+2,portalY,1,1);
+  add('sign',portalX,portalY-1,1,1,{text:'迷宮の入り口'});
+  carvePath(grid,cx0,cy0,portalX,portalY+1,1.1);
+
+  const spawnAng=Math.PI/2-0.1, spawnDist=clearR(spawnAng)-2.5;
+  const spawnX=cx0+Math.cos(spawnAng)*spawnDist, spawnY=cy0+Math.sin(spawnAng)*spawnDist;
+  carvePath(grid,cx0,cy0,Math.round(spawnX),Math.round(spawnY),2.7);
+
+  add('fountain',cx0-1,cy0-1,2,2); solid(cx0-1,cy0-1,2,2);
+  const stallAng=0.7, stallDist=plazaR(0.7)+2.5;
+  const stallX=Math.round(cx0+Math.cos(stallAng)*stallDist), stallY=Math.round(cy0+Math.sin(stallAng)*stallDist);
+  solid(stallX,stallY,3,1); add('stall',stallX,stallY,3,1);
+  carvePath(grid,cx0,cy0,stallX+1,stallY,0.4);
+
+  const houseSpecs=[
+    {ang:2.3,r:11,roof:0},{ang:3.6,r:12.5,roof:1},{ang:4.6,r:11.5,roof:2},
+    {ang:0.15,r:12,roof:3},{ang:5.6,r:10.5,roof:0}
+  ];
+  for(const hs of houseSpecs){
+    const cr=clearR(hs.ang), rr=Math.min(hs.r, cr-3);
+    const hx=Math.round(cx0+Math.cos(hs.ang)*rr-2), hy=Math.round(cy0+Math.sin(hs.ang)*rr-1.5);
+    solid(hx,hy,4,3); add('house',hx,hy,4,3,{roof:TOWN.roofs[hs.roof]});
+    carvePath(grid,cx0,cy0,hx+2,hy+3,hs.ang*1.7);
+  }
+
+  [[2.9,7],[4.9,6.5],[1.5,7.5],[0.85,6.3],[5.9,7]].forEach(([ang,r])=>{
+    const px=Math.round(cx0+Math.cos(ang)*r), py=Math.round(cy0+Math.sin(ang)*r);
+    if(grid[py] && grid[py][px]===5){ solid(px,py,1,1); add('lamp',px,py,1,1); }
   });
-  solid(15,10,2,2); add('fountain',15,10,2,2);
-  solid(19,8,3,1); add('stall',19,8,3,1);
-  [[9,6],[22,6],[9,15],[22,15]].forEach(([lx,ly])=>{ solid(lx,ly,1,1); add('lamp',lx,ly,1,1); });
-  [[2,7],[2,12],[29,7],[29,12],[8,3],[23,3],[11,3],[21,3],[8,18],[23,18],[12,19],[20,19],[2,18],[29,18]]
-    .forEach(([tx,ty])=>{ solid(tx,ty,1,1); add('tree',tx,ty,1,1); });
+
+  for(let ry=-19;ry<=19;ry++) for(let rx=-19;rx<=19;rx++){
+    const gx=cx0+rx, gy=cy0+ry; if(gx<1||gy<1||gx>=MW-1||gy>=MH-1) continue;
+    if(grid[gy][gx]!==1) continue;
+    const dist=Math.hypot(rx,ry), ang=Math.atan2(ry,rx), edge=clearR(ang);
+    const h=hash(gx,gy);
+    if(dist>edge && dist<edge+3.5 && h%3===0){ solid(gx,gy,1,1); add('tree',gx,gy,1,1); }
+    else if(dist>=edge+3.5 && dist<edge+9 && h%6===0){ solid(gx,gy,1,1); add('tree',gx,gy,1,1); }
+  }
+  for(let ry=-16;ry<=16;ry++) for(let rx=-16;rx<=16;rx++){
+    const gx=cx0+rx, gy=cy0+ry; if(!grid[gy] || grid[gy][gx]!==6) continue;
+    const dist=Math.hypot(rx,ry), ang=Math.atan2(ry,rx), edge=clearR(ang);
+    if(edge-dist<2.2 && hash(gx,gy)%8===0){ solid(gx,gy,1,1); add('tree',gx,gy,1,1); }
+  }
 
   const npcs=[{
-    type:'merchant', name:'商人 マルコ', x:x0+20.5, y:y0+7.5, facing:-1, talkRange:2.6,
-    lines:['いらっしゃい！旅のお供にどうだい？','冒険の準備はいいかい？','迷宮は危険だ。薬草は多めにね！'],
+    type:'merchant', name:'商人 マルコ', x:stallX+1.5, y:stallY+1.3, facing:-1, talkRange:2.8,
+    lines:['いらっしゃい！旅のお供にどうだい？','冒険の準備はいいかい？','迷宮は危険だ。薬草は多めにね！','ゴールドが貯まったら見せておくれ。'],
     shop:['potion','sword','shield','charm']
   }];
 
   const critters=[];
-  for(let i=0;i<7;i++){
-    critters.push({cx:x0+5+Math.random()*22, cy:y0+4+Math.random()*14, rx:2+Math.random()*3, ry:1.5+Math.random()*2,
+  for(let i=0;i<8;i++){
+    const a=Math.random()*Math.PI*2, r=4+Math.random()*10;
+    critters.push({cx:cx0+Math.cos(a)*r, cy:cy0+Math.sin(a)*r, rx:2+Math.random()*3, ry:1.5+Math.random()*2,
       sx:0.4+Math.random()*0.5, sy:0.5+Math.random()*0.5, ph:Math.random()*6.28, t:Math.random()*10, x:0, y:0,
       color:TOWN.flowers[i%TOWN.flowers.length]});
   }
 
-  player.x=x0+16.5; player.y=y0+19.5; player.kx=0; player.ky=0; player.flash=0;
+  player.x=spawnX; player.y=spawnY; player.kx=0; player.ky=0; player.flash=0;
   updateCamera(player, true);
   return {grid, monsters:[], items:[], npcs, decor, critters, stairsX:-1, stairsY:-1, depth:0, isTown:true};
 }

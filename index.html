@@ -68,12 +68,20 @@ canvas{width:100%; height:100%; image-rendering:pixelated; display:block;}
 #log div:last-child{color:var(--ember);}
 #npcDialogue{
   position:absolute; left:50%; bottom:calc(74px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%);
-  display:none; flex-direction:column; gap:2px; min-width:220px; max-width:80vw;
-  background:rgba(30,22,14,0.85); border:1px solid #c99a4a; border-radius:8px;
-  padding:8px 14px; z-index:4; pointer-events:none;
+  display:none; flex-direction:column; gap:5px; min-width:220px; max-width:80vw; align-items:center;
+  background:rgba(30,22,14,0.88); border:1px solid #c99a4a; border-radius:8px;
+  padding:8px 14px 10px; z-index:6; pointer-events:auto;
 }
-#npcDialogue .who{font-size:11px; color:#ffd27a; font-weight:bold;}
-#npcDialogue .line{font-size:13px; color:#fff3e0;}
+#npcDialogue .who{font-size:11px; color:#ffd27a; font-weight:bold; align-self:flex-start;}
+#npcDialogue .line{font-size:13px; color:#fff3e0; align-self:flex-start;}
+.shopRow{display:flex; gap:8px; margin-top:2px;}
+.shopBtn{
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  background:rgba(255,255,255,0.08); border:1px solid #c99a4a; border-radius:6px;
+  padding:5px 9px; font-size:17px; color:#fff3e0; cursor:pointer; font-family:inherit;
+}
+.shopBtn:active{background:rgba(255,255,255,0.22);}
+.shopBtn .cost{font-size:10px; color:#ffd27a;}
 #overlay{
   position:fixed; inset:0; background:rgba(8,5,10,0.92); display:none;
   align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:10;
@@ -93,7 +101,7 @@ canvas{width:100%; height:100%; image-rendering:pixelated; display:block;}
   <canvas id="cv" width="640" height="384"></canvas>
   <div class="hud">
     <span id="locLabel">地下 <b>1</b>階</span>
-    <span>Lv.<b id="lvNum">1</b></span>
+    <span>Lv.<b id="lvNum">1</b> 💰<b id="goldNum">0</b></span>
     <span>最高到達: <b id="bestFloor">1</b>F</span>
   </div>
   <div class="bars">
@@ -102,7 +110,7 @@ canvas{width:100%; height:100%; image-rendering:pixelated; display:block;}
   </div>
   <div id="log"></div>
   <div class="itembar" id="itembar"></div>
-  <div id="npcDialogue"><span class="who"></span><span class="line"></span></div>
+  <div id="npcDialogue"><span class="who"></span><span class="line"></span><div class="shopRow" id="shopRow"></div></div>
   <div id="joyZone"><div id="joyBase"></div><div id="joyThumb"></div></div>
   <div id="atkJoyZone"><div id="atkJoyBase"></div><div id="atkJoyThumb"></div></div>
 </div>

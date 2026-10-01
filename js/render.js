@@ -2,10 +2,11 @@
 // ---- Camera & all canvas drawing (tiles, items, creatures, effects) ----
 let camPX=0, camPY=0;
 function updateCamera(player, snap){
-  const maxCamX=Math.max(0, MW*TS-cv.width);
-  const maxCamY=Math.max(0, MH*TS-cv.height);
-  const tx=Math.min(maxCamX, Math.max(0, player.x*TS-cv.width/2));
-  const ty=Math.min(maxCamY, Math.max(0, player.y*TS-cv.height/2));
+  const vw=cv.width/ZOOM, vh=cv.height/ZOOM;
+  const maxCamX=Math.max(0, MW*TS-vw);
+  const maxCamY=Math.max(0, MH*TS-vh);
+  const tx=Math.min(maxCamX, Math.max(0, player.x*TS-vw/2));
+  const ty=Math.min(maxCamY, Math.max(0, player.y*TS-vh/2));
   if(snap){ camPX=tx; camPY=ty; } else { camPX=lerp(camPX,tx,0.16); camPY=lerp(camPY,ty,0.16); }
 }
 
@@ -70,6 +71,12 @@ function drawPortal(x,y){
 }
 function drawItem(x,y,type){
   const X=x*TS-camPX, Y=y*TS-camPY, bob=Math.sin(tick*0.08+x)*1.5;
+  if(type==='gold'){
+    const spin=Math.abs(Math.sin(tick*0.1+x));
+    ctx.fillStyle=PALETTE.goldCoinDk; ctx.fillRect(X+8-spin*3,Y+8+bob,4+spin*6,6);
+    ctx.fillStyle=PALETTE.goldCoin; ctx.fillRect(X+8-spin*3,Y+7+bob,4+spin*6,5);
+    return;
+  }
   if(type==='sword'){
     ctx.fillStyle=PALETTE.swordHilt; ctx.fillRect(X+8,Y+13+bob,4,3);
     ctx.fillStyle=PALETTE.swordBlade; ctx.fillRect(X+9,Y+4+bob,2,10);
@@ -114,15 +121,18 @@ function drawCreatureAt(px,py,facing,bobAmt,parts,flashAmt,alpha,seed){
 function render(){
   const f=state.floor, p=state.player;
   updateCamera(p, false);
-  const sx=Math.max(0,Math.floor(camPX/TS)-1), ex=Math.min(MW-1,Math.ceil((camPX+cv.width)/TS));
-  const sy=Math.max(0,Math.floor(camPY/TS)-1), ey=Math.min(MH-1,Math.ceil((camPY+cv.height)/TS));
+  const vw=cv.width/ZOOM, vh=cv.height/ZOOM;
+  const sx=Math.max(0,Math.floor(camPX/TS)-1), ex=Math.min(MW-1,Math.ceil((camPX+vw)/TS));
+  const sy=Math.max(0,Math.floor(camPY/TS)-1), ey=Math.min(MH-1,Math.ceil((camPY+vh)/TS));
   const ppx=p.x*TS-camPX, ppy=p.y*TS-camPY;
 
   if(f.isTown){
     const sky=ctx.createLinearGradient(0,0,0,cv.height);
     sky.addColorStop(0,'#bfe8f7'); sky.addColorStop(1,'#eaf7d8');
     ctx.fillStyle=sky; ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.save(); ctx.scale(ZOOM,ZOOM);
     drawTownWorld(f, sx, ex, sy, ey, ()=>drawCreatureAt(ppx,ppy,p.facing,1.2,c=>playerParts(c,p.atkPulse),p.flash,1,p.x));
+    ctx.restore();
     return;
   }
 
@@ -135,6 +145,7 @@ function render(){
     state.shake=Math.max(0,state.shake-0.1);
   } else state.shake=0;
   ctx.save();
+  ctx.scale(ZOOM,ZOOM);
   ctx.translate(shakeX,shakeY);
 
   for(let y=sy;y<=ey;y++) for(let x=sx;x<=ex;x++){

@@ -7,7 +7,7 @@ let state=null, tick=0;
 
 function newGame(){
   const player={hp:12,maxhp:12,atk:3,def:0,lv:1,exp:0,expNext:10,x:0,y:0,facing:1,
-    flash:0,kx:0,ky:0,atkCd:0,hitCd:0,r:0.3,speed:3.4,atkPulse:0,aimX:1,aimY:0,atkAngle:0};
+    flash:0,kx:0,ky:0,atkCd:0,hitCd:0,r:0.3,speed:3.4,atkPulse:0,aimX:1,aimY:0,atkAngle:0,gold:15};
   const floor=newTown(player);
   state={player, floor, over:false, shake:0, nearNpc:null};
   inventory={potion:0}; equip={sword:0,shield:0,charm:0};

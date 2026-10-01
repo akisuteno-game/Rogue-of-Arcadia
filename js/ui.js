@@ -19,6 +19,7 @@ function updateHUD(){
   const loc=document.getElementById('locLabel');
   loc.innerHTML = f.isTown ? '<b>アルカディア</b>(拠点)' : '地下 <b>'+f.depth+'</b>階';
   document.getElementById('lvNum').textContent=p.lv;
+  document.getElementById('goldNum').textContent=p.gold||0;
   document.getElementById('bestFloor').textContent=best;
   document.getElementById('hpBar').style.width=Math.max(0,(p.hp/p.maxhp*100))+'%';
   document.getElementById('hpText').textContent=Math.max(0,Math.ceil(p.hp))+'/'+p.maxhp;
@@ -54,10 +55,40 @@ function usePotion(){
   updateHUD(); renderInventory();
 }
 
+function grantItem(type){
+  const p=state.player;
+  if(type==='sword'){ p.atk+=1; equip.sword++; log('剣のかけらを手に入れた。攻撃力+1'); }
+  else if(type==='shield'){ p.def+=1; equip.shield++; log('盾のかけらを手に入れた。防御力+1'); }
+  else if(type==='charm'){ p.maxhp+=3; p.hp+=3; equip.charm++; log('お守りを手に入れた。最大HP+3'); }
+  else { inventory.potion++; log('薬草を手に入れた。(所持:'+inventory.potion+')'); }
+  updateHUD(); renderInventory();
+}
+
+function buyItem(key){
+  const def=SHOP_ITEMS[key], p=state.player;
+  if(!p || state.over) return;
+  if((p.gold||0)<def.cost){ log(def.name+'を買うには'+def.cost+'G必要。お金が足りない…'); return; }
+  p.gold-=def.cost;
+  log(def.cost+'Gで'+def.name+'を購入した。');
+  grantItem(key);
+}
+
 function openShop(npc){
   const box=document.getElementById('npcDialogue');
   box.querySelector('.who').textContent=npc.name;
   box.querySelector('.line').textContent=npc.lines[rnd(npc.lines.length)];
+  const row=document.getElementById('shopRow');
+  row.innerHTML='';
+  if(npc.shop){
+    for(const key of npc.shop){
+      const def=SHOP_ITEMS[key];
+      const btn=document.createElement('button');
+      btn.className='shopBtn';
+      btn.innerHTML='<span>'+def.icon+'</span><span class="cost">'+def.cost+'G</span>';
+      btn.addEventListener('click', ()=>buyItem(key));
+      row.appendChild(btn);
+    }
+  }
   box.style.display='flex';
 }
 function closeShop(){

@@ -94,11 +94,8 @@ function update(dt){
     const it=f.items[i], dx=(it.x+0.5)-p.x, dy=(it.y+0.5)-p.y;
     if(Math.hypot(dx,dy) < p.r+0.4){
       f.items.splice(i,1);
-      if(it.type==='sword'){ p.atk+=1; equip.sword++; log('剣のかけらを見つけた。攻撃力+1'); }
-      else if(it.type==='shield'){ p.def+=1; equip.shield++; log('盾のかけらを見つけた。防御力+1'); }
-      else if(it.type==='charm'){ p.maxhp+=3; p.hp+=3; equip.charm++; log('お守りを見つけた。最大HP+3'); }
-      else { inventory.potion++; log('薬草を拾った。(所持:'+inventory.potion+')'); }
-      updateHUD(); renderInventory();
+      if(it.type==='gold'){ p.gold=(p.gold||0)+it.amount; log('金貨を'+it.amount+'枚拾った。'); updateHUD(); }
+      else grantItem(it.type);
     }
   }
 

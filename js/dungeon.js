@@ -66,11 +66,16 @@ function newFloor(depth, player){
       r:def.r, speed:def.speed+depth*0.015, aggro:def.aggro});
   }
   const items=[]; const itemCount=3+rnd(3)+Math.floor(rooms.length/5);
-  const itemPool=['potion','potion','potion','sword','shield','charm'];
+  const itemPool=['potion','potion','potion','gold','gold','gold','sword','shield','charm'];
   for(let i=0;i<itemCount;i++){
     const r=rooms[rnd(rooms.length)];
     const ix=rndRange(r.x,r.x+r.w-1), iy=rndRange(r.y,r.y+r.h-1);
-    if(grid[iy][ix]===0 && !(ix===startX&&iy===startY)) items.push({x:ix,y:iy,type:itemPool[rnd(itemPool.length)]});
+    if(grid[iy][ix]===0 && !(ix===startX&&iy===startY)){
+      const type=itemPool[rnd(itemPool.length)];
+      const item={x:ix,y:iy,type};
+      if(type==='gold') item.amount=3+rnd(8)+depth;
+      items.push(item);
+    }
   }
   player.x=startX+0.5; player.y=startY+0.5; player.kx=0; player.ky=0; player.flash=0;
   updateCamera(player, true);

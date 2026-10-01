@@ -16,7 +16,17 @@ const PALETTE={
   boneWhite:'#d8d0c0', boneShadow:'#a89880', boneEye:'#1a1620', boneWeapon:'#6a625a',
   swordBlade:'#cfd6dd', swordHilt:'#8a6a3a', shieldBody:'#5a7ba8', shieldTrim:'#d9b34f',
   charmBody:'#a860c9', charmGlow:'#e8b8ff',
-  portalCore:'#8a5fe0', portalGlow:'#c9a8ff', portalRing:'#5a3ca8'
+  portalCore:'#8a5fe0', portalGlow:'#c9a8ff', portalRing:'#5a3ca8',
+  goldCoin:'#f0c239', goldCoinDk:'#b8860b'
+};
+
+const ZOOM=2.1;
+
+const SHOP_ITEMS={
+  potion:{icon:'🧪', name:'薬草', cost:4},
+  sword:{icon:'⚔️', name:'剣のかけら', cost:10},
+  shield:{icon:'🛡️', name:'盾のかけら', cost:10},
+  charm:{icon:'🧿', name:'お守り', cost:16}
 };
 
 const MONSTER_DEFS={

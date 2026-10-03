@@ -36,4 +36,4 @@ const MONSTER_DEFS={
   skeleton:{hpBase:9,hpPerDepth:1.2,atkBase:3,atkPerDepth:0.6,speed:1.1,r:0.36,aggro:5,exp:9}
 };
 
-const ATTACK_RANGE=1.8, ATTACK_HALF_ANGLE=10*Math.PI/180, ATTACK_CD=0.4;
+const ATTACK_RANGE=1.8, ATTACK_HALF_ANGLE=10*Math.PI/180, ATTACK_CD=0.65;

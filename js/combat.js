@@ -39,13 +39,10 @@ function doAttack(){
   for(const m of f.monsters){
     if(!m.alive) continue;
     const dx=m.x-p.x, dy=m.y-p.y, dist=Math.hypot(dx,dy);
-    if(dist >= ATTACK_RANGE+m.r) continue;
-    let hitOk = dist < p.r+m.r+0.15;
-    if(!hitOk && dist>0.02){
-      const dot=(dx/dist)*p.aimX+(dy/dist)*p.aimY;
-      hitOk = dot>=cosHalf;
-    }
-    if(hitOk){
+    if(dist >= ATTACK_RANGE+m.r || dist<0.03) continue;
+    const dot=(dx/dist)*p.aimX+(dy/dist)*p.aimY;
+    if(dot<cosHalf) continue;
+    {
       const dmg=Math.max(1, p.atk+rnd(2)-1);
       m.hp-=dmg; m.flash=1;
       const kd=dist||1; m.kx=(dx/kd)*6.5; m.ky=(dy/kd)*6.5;
@@ -86,7 +83,6 @@ function update(dt){
   p.atkCd=Math.max(0,p.atkCd-dt); p.hitCd=Math.max(0,p.hitCd-dt);
   p.flash=Math.max(0,p.flash-dt*3.5);
   p.atkPulse=Math.max(0,p.atkPulse-dt*4);
-  if(atkActive && atkHasAim && p.atkCd<=0){ doAttack(); }
 
   if(f.isTown){ updateTown(dt); return; }
 

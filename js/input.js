@@ -81,7 +81,10 @@ box.addEventListener('pointermove', e=>{
 });
 function ptrEnd(e){
   if(e.pointerId===joyId){ joyActive=false; joyId=null; joyZone.style.display='none'; joyVec.x=0; joyVec.y=0; joyHasAim=false; }
-  if(e.pointerId===atkId){ atkActive=false; atkId=null; atkJoyZone.style.display='none'; atkHasAim=false; }
+  if(e.pointerId===atkId){
+    if(atkHasAim){ state.player.aimX=atkAimX; state.player.aimY=atkAimY; doAttack(); }
+    atkActive=false; atkId=null; atkJoyZone.style.display='none'; atkHasAim=false;
+  }
 }
 box.addEventListener('pointerup', ptrEnd);
 box.addEventListener('pointercancel', ptrEnd);

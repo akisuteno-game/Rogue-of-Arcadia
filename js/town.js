@@ -144,8 +144,25 @@ function updateTown(dt){
 }
 
 // ---------- drawing ----------
+function isTownBlock(v){ return v===1||v===7; }
+function roundTownCorners(grid,x,y,X,Y,color){
+  ctx.fillStyle=color;
+  const r=4.5;
+  if(isTownBlock(tileAt(grid,x-1,y)) && isTownBlock(tileAt(grid,x,y-1))){
+    ctx.beginPath(); ctx.moveTo(X,Y); ctx.arc(X,Y,r,Math.PI,1.5*Math.PI); ctx.closePath(); ctx.fill();
+  }
+  if(isTownBlock(tileAt(grid,x+1,y)) && isTownBlock(tileAt(grid,x,y-1))){
+    ctx.beginPath(); ctx.moveTo(X+TS,Y); ctx.arc(X+TS,Y,r,1.5*Math.PI,2*Math.PI); ctx.closePath(); ctx.fill();
+  }
+  if(isTownBlock(tileAt(grid,x-1,y)) && isTownBlock(tileAt(grid,x,y+1))){
+    ctx.beginPath(); ctx.moveTo(X,Y+TS); ctx.arc(X,Y+TS,r,0.5*Math.PI,Math.PI); ctx.closePath(); ctx.fill();
+  }
+  if(isTownBlock(tileAt(grid,x+1,y)) && isTownBlock(tileAt(grid,x,y+1))){
+    ctx.beginPath(); ctx.moveTo(X+TS,Y+TS); ctx.arc(X+TS,Y+TS,r,0,0.5*Math.PI); ctx.closePath(); ctx.fill();
+  }
+}
 function drawTownTile(x,y,t){
-  const X=x*TS-camPX, Y=y*TS-camPY, h=hash(x,y);
+  const X=x*TS-camPX, Y=y*TS-camPY, h=hash(x,y), g=state.floor.grid;
   if(t===1){
     ctx.fillStyle=(h%2)?TOWN.forest:TOWN.forestDk; ctx.fillRect(X,Y,TS,TS);
     ctx.fillStyle=TOWN.forestHi;
@@ -154,7 +171,9 @@ function drawTownTile(x,y,t){
     return;
   }
   if(t===5||t===4){
-    ctx.fillStyle=(h%2===0)?TOWN.cobA:TOWN.cobB; ctx.fillRect(X,Y,TS,TS);
+    const col=(h%2===0)?TOWN.cobA:TOWN.cobB;
+    ctx.fillStyle=col; ctx.fillRect(X,Y,TS,TS);
+    roundTownCorners(g,x,y,X,Y,col);
     const stones=[[4,4],[13,3],[5,12],[14,13],[9,8],[3,16],[16,17]];
     for(let i=0;i<stones.length;i++){
       const sh=hash(x*7+i*31,y*13+i*17);
@@ -165,7 +184,9 @@ function drawTownTile(x,y,t){
     }
     return;
   }
-  ctx.fillStyle=(h%2===0)?TOWN.grassA:TOWN.grassB; ctx.fillRect(X,Y,TS,TS);
+  const gcol=(h%2===0)?TOWN.grassA:TOWN.grassB;
+  ctx.fillStyle=gcol; ctx.fillRect(X,Y,TS,TS);
+  roundTownCorners(g,x,y,X,Y,gcol);
   if(h%3===0){
     ctx.globalAlpha=0.25; ctx.fillStyle=(h%2)?TOWN.grassB:TOWN.grassA;
     ctx.beginPath(); ctx.arc(X+6+(h%9),Y+9+(h%7),3.4,0,Math.PI*2); ctx.fill();

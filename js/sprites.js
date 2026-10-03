@@ -1,6 +1,6 @@
 "use strict";
 // ---- Pixel-art part drawers for player & monsters (called via drawCreatureAt) ----
-function playerParts(c, swingT){
+function playerParts(c){
   c.fillStyle=PALETTE.playerCloakDk; c.fillRect(-6,-2,4,10);
   c.fillStyle=PALETTE.playerCloak; c.fillRect(-6,-3,3,9);
   c.fillStyle=PALETTE.playerBoot; c.fillRect(-4,6,3,3); c.fillRect(1,6,3,3);
@@ -10,13 +10,9 @@ function playerParts(c, swingT){
   c.fillStyle=PALETTE.playerSkin; c.fillRect(-3,-9,6,6);
   c.fillStyle=PALETTE.playerArmor; c.fillRect(-4,-11,8,3); c.fillRect(-4,-9,2,3);
   c.fillStyle='#2a2016'; c.fillRect(-2,-7,1,1); c.fillRect(1,-7,1,1);
-  const ang=(swingT>0.02)?(-1.1+(1-swingT)*2.1):0.5;
-  c.save();
-  c.translate(6,-2); c.rotate(ang);
-  c.fillStyle='#8a8f96'; c.fillRect(-1,-3,2,3);
-  c.fillStyle='#cfd6dd'; c.fillRect(-1,-13,2,10);
-  c.restore();
 }
+// Sword is drawn separately in render.js (drawPlayerWeapon), in world space,
+// so it always points toward the real attack direction regardless of body facing.
 function goblinParts(c){
   c.fillStyle=PALETTE.goblinSkinDk; c.fillRect(-4,-2,9,8);
   c.fillStyle=PALETTE.goblinSkin; c.fillRect(-4,-3,9,7);

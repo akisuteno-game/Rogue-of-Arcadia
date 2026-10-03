@@ -36,33 +36,28 @@ function drawWall(x,y){
     ctx.globalAlpha=flick; ctx.fillStyle=PALETTE.torchCore; ctx.fillRect(X+9,Y+TS-16,2,4); ctx.globalAlpha=1;
   }
 }
-function drawFloorPatch(x,y){
-  const bh=hash(x>>2,y>>2);
-  if(bh%3===0){
-    ctx.globalAlpha=0.07; ctx.fillStyle=(bh%2)?'#000':PALETTE.crack;
-    ctx.beginPath(); ctx.arc((x>>2)*4*TS-camPX+TS*2,(y>>2)*4*TS-camPY+TS*2,TS*3.2,0,Math.PI*2); ctx.fill();
-    ctx.globalAlpha=1;
-  }
-}
 function drawFloor(x,y,corridor){
   const X=x*TS-camPX, Y=y*TS-camPY, h=hash(x,y);
   if(corridor){
     ctx.fillStyle=(h%2===0)?PALETTE.corA:PALETTE.corB;
     ctx.fillRect(X,Y,TS,TS);
-    drawFloorPatch(x,y);
     ctx.fillStyle=PALETTE.corPath; ctx.fillRect(X+7,Y,6,TS);
-    if(h%8===0){ ctx.fillStyle=PALETTE.crack; ctx.fillRect(X+3+(h%11),Y+4+(h%9),1,1); }
+    if(h%8===0){ ctx.fillStyle=PALETTE.crack; ctx.beginPath(); ctx.arc(X+3+(h%11),Y+4+(h%9),0.8,0,Math.PI*2); ctx.fill(); }
     return;
   }
   ctx.fillStyle=(h%2===0)?PALETTE.floorA:PALETTE.floorB;
   ctx.fillRect(X,Y,TS,TS);
-  drawFloorPatch(x,y);
   if(h%5===0){
     ctx.fillStyle=PALETTE.crack;
     ctx.beginPath(); ctx.arc(X+3+(h%9),Y+4+(h%6),1,0,Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(X+5+(h%7),Y+10+(h%5),0.8,0,Math.PI*2); ctx.fill();
   }
-  if(h%13===0){ ctx.fillStyle=PALETTE.crack; ctx.beginPath(); ctx.arc(X+14,Y+15,1,0,Math.PI*2); ctx.fill(); }
+  if(h%11===0){ ctx.fillStyle=PALETTE.crack; ctx.beginPath(); ctx.arc(X+14,Y+15,1,0,Math.PI*2); ctx.fill(); }
+  if(h%9===0){
+    ctx.globalAlpha=0.35; ctx.fillStyle=PALETTE.wallHi;
+    ctx.beginPath(); ctx.arc(X+6+(h%8),Y+12+(h%6),1.4,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+  }
 }
 function drawStairs(x,y){
   const X=x*TS-camPX, Y=y*TS-camPY;
@@ -130,6 +125,19 @@ function drawCreatureAt(px,py,facing,bobAmt,parts,flashAmt,alpha,seed){
   ctx.restore();
 }
 
+function drawPlayerWeapon(ppx,ppy,p){
+  const idleAngle=Math.atan2(p.aimY,p.aimX);
+  const t=p.atkPulse;
+  const swingAngle = t>0.02 ? (p.atkAngle-1.15+(1-t)*2.2) : idleAngle+0.45;
+  const pivotAngle = t>0.02 ? p.atkAngle : idleAngle;
+  const px=ppx+Math.cos(pivotAngle)*5, py=ppy+Math.sin(pivotAngle)*5-2;
+  ctx.save();
+  ctx.translate(px,py); ctx.rotate(swingAngle);
+  ctx.fillStyle='#8a8f96'; ctx.fillRect(-1,-3,2,3);
+  ctx.fillStyle='#cfd6dd'; ctx.fillRect(-1,-13,2,10);
+  ctx.restore();
+}
+
 function render(){
   const f=state.floor, p=state.player;
   updateCamera(p, false);
@@ -143,7 +151,7 @@ function render(){
     sky.addColorStop(0,'#bfe8f7'); sky.addColorStop(1,'#eaf7d8');
     ctx.fillStyle=sky; ctx.fillRect(0,0,cv.width,cv.height);
     ctx.save(); ctx.scale(ZOOM,ZOOM);
-    drawTownWorld(f, sx, ex, sy, ey, ()=>drawCreatureAt(ppx,ppy,p.facing,1.2,c=>playerParts(c,p.atkPulse),p.flash,1,p.x));
+    drawTownWorld(f, sx, ex, sy, ey, ()=>{ drawCreatureAt(ppx,ppy,p.facing,1.2,playerParts,p.flash,1,p.x); drawPlayerWeapon(ppx,ppy+Math.sin(tick*0.15+p.x*3)*1.2,p); });
     ctx.restore();
     return;
   }
@@ -175,7 +183,8 @@ function render(){
     const partsFn=m.type==='goblin'?goblinParts:m.type==='bat'?batParts:m.type==='skeleton'?skeletonParts:ratParts;
     drawCreatureAt(mpx,mpy,m.facing,bobAmt,partsFn,m.flash,alpha,m.x);
   }
-  drawCreatureAt(ppx,ppy,p.facing,1.2,c=>playerParts(c,p.atkPulse),p.flash,1,p.x);
+  drawCreatureAt(ppx,ppy,p.facing,1.2,playerParts,p.flash,1,p.x);
+  drawPlayerWeapon(ppx,ppy+Math.sin(tick*0.15+p.x*3)*1.2,p);
   if(atkActive && atkHasAim){
     const ready=p.atkCd<=0;
     const col=ready?'#ffe27a':'#9a9aa0';
@@ -198,6 +207,20 @@ function render(){
       ctx.save(); ctx.globalAlpha=0.6; ctx.fillStyle='#fff';
       ctx.beginPath(); ctx.arc(ppx,ppy-18,7,-Math.PI/2,-Math.PI/2+(1-p.atkCd/ATTACK_CD)*Math.PI*2); ctx.lineTo(ppx,ppy-18); ctx.fill();
       ctx.restore();
+    }
+    if(!f.isTown){
+      const cosHalf2=Math.cos(ATTACK_HALF_ANGLE);
+      for(const m of f.monsters){
+        if(!m.alive) continue;
+        const dx=m.x-p.x, dy=m.y-p.y, dist=Math.hypot(dx,dy);
+        if(dist>=ATTACK_RANGE+m.r || dist<0.03) continue;
+        const dot=(dx/dist)*p.aimX+(dy/dist)*p.aimY;
+        if(dot<cosHalf2) continue;
+        const mpx=m.x*TS-camPX, mpy=m.y*TS-camPY;
+        ctx.save(); ctx.globalAlpha=0.65+0.35*Math.sin(tick*0.4); ctx.strokeStyle=col; ctx.lineWidth=1.6;
+        ctx.beginPath(); ctx.arc(mpx,mpy-4,8,0,Math.PI*2); ctx.stroke();
+        ctx.restore();
+      }
     }
   }
   if(p.atkPulse>0.01){

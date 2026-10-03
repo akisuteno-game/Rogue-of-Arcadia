@@ -155,7 +155,6 @@ function drawTownTile(x,y,t){
   }
   if(t===5||t===4){
     ctx.fillStyle=(h%2===0)?TOWN.cobA:TOWN.cobB; ctx.fillRect(X,Y,TS,TS);
-    drawFloorPatch(x,y);
     const stones=[[4,4],[13,3],[5,12],[14,13],[9,8],[3,16],[16,17]];
     for(let i=0;i<stones.length;i++){
       const sh=hash(x*7+i*31,y*13+i*17);
@@ -167,7 +166,11 @@ function drawTownTile(x,y,t){
     return;
   }
   ctx.fillStyle=(h%2===0)?TOWN.grassA:TOWN.grassB; ctx.fillRect(X,Y,TS,TS);
-  drawFloorPatch(x,y);
+  if(h%3===0){
+    ctx.globalAlpha=0.25; ctx.fillStyle=(h%2)?TOWN.grassB:TOWN.grassA;
+    ctx.beginPath(); ctx.arc(X+6+(h%9),Y+9+(h%7),3.4,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+  }
   if(h%4===0){
     ctx.fillStyle=TOWN.tuft;
     ctx.beginPath(); ctx.arc(X+4+(h%11),Y+6+(h%9),1.3,0,Math.PI*2); ctx.fill();

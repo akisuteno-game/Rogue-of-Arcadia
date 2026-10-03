@@ -36,21 +36,33 @@ function drawWall(x,y){
     ctx.globalAlpha=flick; ctx.fillStyle=PALETTE.torchCore; ctx.fillRect(X+9,Y+TS-16,2,4); ctx.globalAlpha=1;
   }
 }
+function drawFloorPatch(x,y){
+  const bh=hash(x>>2,y>>2);
+  if(bh%3===0){
+    ctx.globalAlpha=0.07; ctx.fillStyle=(bh%2)?'#000':PALETTE.crack;
+    ctx.beginPath(); ctx.arc((x>>2)*4*TS-camPX+TS*2,(y>>2)*4*TS-camPY+TS*2,TS*3.2,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+  }
+}
 function drawFloor(x,y,corridor){
-  const X=x*TS-camPX, Y=y*TS-camPY;
+  const X=x*TS-camPX, Y=y*TS-camPY, h=hash(x,y);
   if(corridor){
-    ctx.fillStyle=((x+y)%2===0)?PALETTE.corA:PALETTE.corB;
+    ctx.fillStyle=(h%2===0)?PALETTE.corA:PALETTE.corB;
     ctx.fillRect(X,Y,TS,TS);
+    drawFloorPatch(x,y);
     ctx.fillStyle=PALETTE.corPath; ctx.fillRect(X+7,Y,6,TS);
-    const h=hash(x,y);
     if(h%8===0){ ctx.fillStyle=PALETTE.crack; ctx.fillRect(X+3+(h%11),Y+4+(h%9),1,1); }
     return;
   }
-  ctx.fillStyle=((x+y)%2===0)?PALETTE.floorA:PALETTE.floorB;
+  ctx.fillStyle=(h%2===0)?PALETTE.floorA:PALETTE.floorB;
   ctx.fillRect(X,Y,TS,TS);
-  const h=hash(x,y);
-  if(h%5===0){ ctx.fillStyle=PALETTE.crack; ctx.fillRect(X+2+(h%9),Y+3+(h%6),2,1); ctx.fillRect(X+4+(h%7),Y+9+(h%5),1,3); }
-  if(h%13===0){ ctx.fillStyle=PALETTE.crack; ctx.fillRect(X+13,Y+14,3,1); }
+  drawFloorPatch(x,y);
+  if(h%5===0){
+    ctx.fillStyle=PALETTE.crack;
+    ctx.beginPath(); ctx.arc(X+3+(h%9),Y+4+(h%6),1,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(X+5+(h%7),Y+10+(h%5),0.8,0,Math.PI*2); ctx.fill();
+  }
+  if(h%13===0){ ctx.fillStyle=PALETTE.crack; ctx.beginPath(); ctx.arc(X+14,Y+15,1,0,Math.PI*2); ctx.fill(); }
 }
 function drawStairs(x,y){
   const X=x*TS-camPX, Y=y*TS-camPY;
@@ -165,13 +177,28 @@ function render(){
   }
   drawCreatureAt(ppx,ppy,p.facing,1.2,c=>playerParts(c,p.atkPulse),p.flash,1,p.x);
   if(atkActive && atkHasAim){
+    const ready=p.atkCd<=0;
+    const col=ready?'#ffe27a':'#9a9aa0';
     const ang=Math.atan2(p.aimY,p.aimX), ha=ATTACK_HALF_ANGLE, rr=ATTACK_RANGE*TS;
     ctx.save(); ctx.translate(ppx,ppy); ctx.rotate(ang);
-    ctx.globalAlpha=0.16+0.06*Math.sin(tick*0.25); ctx.fillStyle='#ffe27a';
+    ctx.globalAlpha=ready?(0.16+0.06*Math.sin(tick*0.25)):0.08; ctx.fillStyle=col;
     ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,rr,-ha,ha); ctx.closePath(); ctx.fill();
-    ctx.globalAlpha=0.55; ctx.strokeStyle='#ffe27a'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.globalAlpha=ready?0.55:0.3; ctx.strokeStyle=col; ctx.lineWidth=1; ctx.setLineDash([3,3]);
     ctx.beginPath(); ctx.arc(0,0,rr,-ha,ha); ctx.stroke(); ctx.setLineDash([]);
+    ctx.globalAlpha=ready?0.5:0.25; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(TS*0.7,0); ctx.lineTo(rr,0); ctx.stroke();
     ctx.restore();
+    ctx.save(); ctx.globalAlpha=ready?(0.7+0.3*Math.sin(tick*0.3)):0.4;
+    ctx.strokeStyle=col; ctx.lineWidth=1.4;
+    const rpx=ppx+Math.cos(ang)*rr, rpy=ppy+Math.sin(ang)*rr;
+    ctx.beginPath(); ctx.arc(rpx,rpy,4,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(rpx-6,rpy); ctx.lineTo(rpx+6,rpy); ctx.moveTo(rpx,rpy-6); ctx.lineTo(rpx,rpy+6); ctx.stroke();
+    ctx.restore();
+    if(!ready){
+      ctx.save(); ctx.globalAlpha=0.6; ctx.fillStyle='#fff';
+      ctx.beginPath(); ctx.arc(ppx,ppy-18,7,-Math.PI/2,-Math.PI/2+(1-p.atkCd/ATTACK_CD)*Math.PI*2); ctx.lineTo(ppx,ppy-18); ctx.fill();
+      ctx.restore();
+    }
   }
   if(p.atkPulse>0.01){
     const t=p.atkPulse, ang=p.atkAngle, ha=ATTACK_HALF_ANGLE;

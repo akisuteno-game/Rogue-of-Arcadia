@@ -36,17 +36,35 @@ function drawWall(x,y){
     ctx.globalAlpha=flick; ctx.fillStyle=PALETTE.torchCore; ctx.fillRect(X+9,Y+TS-16,2,4); ctx.globalAlpha=1;
   }
 }
+function roundFloorCorners(grid,x,y,X,Y,color){
+  ctx.fillStyle=color;
+  const r=4.5;
+  if(tileAt(grid,x-1,y)===1 && tileAt(grid,x,y-1)===1){
+    ctx.beginPath(); ctx.moveTo(X,Y); ctx.arc(X,Y,r,Math.PI,1.5*Math.PI); ctx.closePath(); ctx.fill();
+  }
+  if(tileAt(grid,x+1,y)===1 && tileAt(grid,x,y-1)===1){
+    ctx.beginPath(); ctx.moveTo(X+TS,Y); ctx.arc(X+TS,Y,r,1.5*Math.PI,2*Math.PI); ctx.closePath(); ctx.fill();
+  }
+  if(tileAt(grid,x-1,y)===1 && tileAt(grid,x,y+1)===1){
+    ctx.beginPath(); ctx.moveTo(X,Y+TS); ctx.arc(X,Y+TS,r,0.5*Math.PI,Math.PI); ctx.closePath(); ctx.fill();
+  }
+  if(tileAt(grid,x+1,y)===1 && tileAt(grid,x,y+1)===1){
+    ctx.beginPath(); ctx.moveTo(X+TS,Y+TS); ctx.arc(X+TS,Y+TS,r,0,0.5*Math.PI); ctx.closePath(); ctx.fill();
+  }
+}
 function drawFloor(x,y,corridor){
-  const X=x*TS-camPX, Y=y*TS-camPY, h=hash(x,y);
+  const X=x*TS-camPX, Y=y*TS-camPY, h=hash(x,y), g=state.floor.grid;
   if(corridor){
-    ctx.fillStyle=(h%2===0)?PALETTE.corA:PALETTE.corB;
-    ctx.fillRect(X,Y,TS,TS);
+    const col=(h%2===0)?PALETTE.corA:PALETTE.corB;
+    ctx.fillStyle=col; ctx.fillRect(X,Y,TS,TS);
+    roundFloorCorners(g,x,y,X,Y,col);
     ctx.fillStyle=PALETTE.corPath; ctx.fillRect(X+7,Y,6,TS);
     if(h%8===0){ ctx.fillStyle=PALETTE.crack; ctx.beginPath(); ctx.arc(X+3+(h%11),Y+4+(h%9),0.8,0,Math.PI*2); ctx.fill(); }
     return;
   }
-  ctx.fillStyle=(h%2===0)?PALETTE.floorA:PALETTE.floorB;
-  ctx.fillRect(X,Y,TS,TS);
+  const fcol=(h%2===0)?PALETTE.floorA:PALETTE.floorB;
+  ctx.fillStyle=fcol; ctx.fillRect(X,Y,TS,TS);
+  roundFloorCorners(g,x,y,X,Y,fcol);
   if(h%5===0){
     ctx.fillStyle=PALETTE.crack;
     ctx.beginPath(); ctx.arc(X+3+(h%9),Y+4+(h%6),1,0,Math.PI*2); ctx.fill();
@@ -126,15 +144,19 @@ function drawCreatureAt(px,py,facing,bobAmt,parts,flashAmt,alpha,seed){
 }
 
 function drawPlayerWeapon(ppx,ppy,p){
-  const idleAngle=Math.atan2(p.aimY,p.aimX);
   const t=p.atkPulse;
-  const swingAngle = t>0.02 ? (p.atkAngle-1.15+(1-t)*2.2) : idleAngle+0.45;
-  const pivotAngle = t>0.02 ? p.atkAngle : idleAngle;
-  const px=ppx+Math.cos(pivotAngle)*5, py=ppy+Math.sin(pivotAngle)*5-2;
+  let ang, px, py;
+  if(t>0.02){
+    ang = p.atkAngle-1.0+(1-t)*2.0;
+    px=ppx+Math.cos(p.atkAngle)*4; py=ppy+Math.sin(p.atkAngle)*4-2;
+  } else {
+    ang = p.facing>0 ? 0.55 : Math.PI-0.55;
+    px=ppx+p.facing*5; py=ppy-2;
+  }
   ctx.save();
-  ctx.translate(px,py); ctx.rotate(swingAngle);
-  ctx.fillStyle='#8a8f96'; ctx.fillRect(-1,-3,2,3);
-  ctx.fillStyle='#cfd6dd'; ctx.fillRect(-1,-13,2,10);
+  ctx.translate(px,py); ctx.rotate(ang);
+  ctx.fillStyle='#8a8f96'; ctx.fillRect(-3,-1.5,4,3);
+  ctx.fillStyle='#cfd6dd'; ctx.fillRect(1,-1,11,2);
   ctx.restore();
 }
 

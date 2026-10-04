@@ -8,7 +8,8 @@ const TOWN={
   wall:'#f6ead0', wallShade:'#d9c9a6', door:'#7a4a2a', window:'#8fd8f5',
   water:'#5cc8f0', waterHi:'#c4f0ff', stone:'#c9d0d8', stoneDk:'#98a3ae',
   trunk:'#8a5a2c', leaf:'#43a34e', leafHi:'#6cc873', leafDk:'#2f7d3a',
-  roofs:['#e0644a','#4a86d9','#e5a93c','#9a63d0'],
+  roofs:['#e0644a','#4a86d9','#e5a93c','#9a63d0','#4aa876','#d9637f'],
+  fence:'#8a6a3a',
   flowers:['#ff8fa3','#ffd166','#ffffff','#b8a1ff']
 };
 
@@ -54,7 +55,49 @@ function newTown(player){
   const decor=[]; const add=(kind,gx,gy,w,h,extra)=>decor.push(Object.assign({kind,x:gx,y:gy,w,h},extra||{}));
   const solid=(gx,gy,w,h)=>{ for(let j=0;j<h;j++) for(let i=0;i<w;i++){ if(grid[gy+j]) grid[gy+j][gx+i]=7; } };
 
-  const portalAng=-Math.PI/2+0.15, portalDist=clearR(portalAng)+3.5;
+  // Angles of the roads are decided up front so houses can be kept clear of them.
+  const portalAng=-Math.PI/2+0.15;
+  const spawnAng=Math.PI/2-0.1;
+  const stallAng=0.7;
+  const reserved=[portalAng,spawnAng,stallAng];
+  function angDist(a,b){
+    let d=(a-b)%(Math.PI*2);
+    if(d>Math.PI) d-=Math.PI*2;
+    if(d<-Math.PI) d+=Math.PI*2;
+    return Math.abs(d);
+  }
+  const angleClear=(a)=>reserved.every(r=>angDist(a,r)>0.55);
+
+  // Houses are placed (and marked solid) BEFORE any road is carved, so every
+  // road below naturally skips over them instead of overlapping their footprint.
+  const HOUSE_COUNT=10;
+  const houseSpecs=[];
+  let baseAng=Math.random()*Math.PI*2;
+  for(let i=0;i<HOUSE_COUNT;i++){
+    let a=baseAng+i*(Math.PI*2/HOUSE_COUNT)+(Math.random()-0.5)*0.3, tries=0;
+    while(!angleClear(a) && tries<12){ a+=0.25; tries++; }
+    const big=Math.random()<0.3;
+    houseSpecs.push({ang:a, r:9.5+Math.random()*3.5, roof:i%TOWN.roofs.length, w:big?5:4, h:big?4:3});
+  }
+  const placed=[];
+  for(const hs of houseSpecs){
+    const cr=clearR(hs.ang), rr=Math.min(hs.r, cr-3);
+    const hx=Math.round(cx0+Math.cos(hs.ang)*rr-hs.w/2), hy=Math.round(cy0+Math.sin(hs.ang)*rr-hs.h/2);
+    let blocked=false;
+    for(const o of placed){ if(hx<o.x+o.w+1 && hx+hs.w+1>o.x && hy<o.y+o.h+1 && hy+hs.h+1>o.y){ blocked=true; break; } }
+    if(blocked) continue;
+    placed.push({x:hx,y:hy,w:hs.w,h:hs.h});
+    solid(hx,hy,hs.w,hs.h); add('house',hx,hy,hs.w,hs.h,{roof:TOWN.roofs[hs.roof]});
+    if(Math.random()<0.6){
+      const gx=hx-2, gy=hy+hs.h-1;
+      for(let gi=0;gi<3;gi++){
+        const fx=gx+gi, fy=gy+1;
+        if(grid[fy] && grid[fy][fx]===6){ add('garden',fx,fy,1,1,{c:TOWN.flowers[(gi+hs.roof)%TOWN.flowers.length]}); }
+      }
+    }
+  }
+
+  const portalDist=clearR(portalAng)+3.5;
   const portalX=Math.round(cx0+Math.cos(portalAng)*portalDist), portalY=Math.round(cy0+Math.sin(portalAng)*portalDist);
   grid[portalY][portalX]=4;
   solid(portalX-2,portalY,1,1); add('pillar',portalX-2,portalY,1,1);
@@ -62,26 +105,15 @@ function newTown(player){
   add('sign',portalX,portalY-1,1,1,{text:'迷宮の入り口'});
   carvePath(grid,cx0,cy0,portalX,portalY+1,1.1);
 
-  const spawnAng=Math.PI/2-0.1, spawnDist=clearR(spawnAng)-2.5;
+  const spawnDist=clearR(spawnAng)-2.5;
   const spawnX=cx0+Math.cos(spawnAng)*spawnDist, spawnY=cy0+Math.sin(spawnAng)*spawnDist;
   carvePath(grid,cx0,cy0,Math.round(spawnX),Math.round(spawnY),2.7);
 
   add('fountain',cx0-1,cy0-1,2,2); solid(cx0-1,cy0-1,2,2);
-  const stallAng=0.7, stallDist=plazaR(0.7)+2.5;
+  const stallDist=plazaR(0.7)+2.5;
   const stallX=Math.round(cx0+Math.cos(stallAng)*stallDist), stallY=Math.round(cy0+Math.sin(stallAng)*stallDist);
   solid(stallX,stallY,3,1); add('stall',stallX,stallY,3,1);
   carvePath(grid,cx0,cy0,stallX+1,stallY,0.4);
-
-  const houseSpecs=[
-    {ang:2.3,r:11,roof:0},{ang:3.6,r:12.5,roof:1},{ang:4.6,r:11.5,roof:2},
-    {ang:0.15,r:12,roof:3},{ang:5.6,r:10.5,roof:0}
-  ];
-  for(const hs of houseSpecs){
-    const cr=clearR(hs.ang), rr=Math.min(hs.r, cr-3);
-    const hx=Math.round(cx0+Math.cos(hs.ang)*rr-2), hy=Math.round(cy0+Math.sin(hs.ang)*rr-1.5);
-    solid(hx,hy,4,3); add('house',hx,hy,4,3,{roof:TOWN.roofs[hs.roof]});
-    carvePath(grid,cx0,cy0,hx+2,hy+3,hs.ang*1.7);
-  }
 
   [[2.9,7],[4.9,6.5],[1.5,7.5],[0.85,6.3],[5.9,7]].forEach(([ang,r])=>{
     const px=Math.round(cx0+Math.cos(ang)*r), py=Math.round(cy0+Math.sin(ang)*r);
@@ -144,36 +176,17 @@ function updateTown(dt){
 }
 
 // ---------- drawing ----------
-function isTownBlock(v){ return v===1||v===7; }
-function roundTownCorners(grid,x,y,X,Y,color){
-  ctx.fillStyle=color;
-  const r=4.5;
-  if(isTownBlock(tileAt(grid,x-1,y)) && isTownBlock(tileAt(grid,x,y-1))){
-    ctx.beginPath(); ctx.moveTo(X,Y); ctx.arc(X,Y,r,Math.PI,1.5*Math.PI); ctx.closePath(); ctx.fill();
-  }
-  if(isTownBlock(tileAt(grid,x+1,y)) && isTownBlock(tileAt(grid,x,y-1))){
-    ctx.beginPath(); ctx.moveTo(X+TS,Y); ctx.arc(X+TS,Y,r,1.5*Math.PI,2*Math.PI); ctx.closePath(); ctx.fill();
-  }
-  if(isTownBlock(tileAt(grid,x-1,y)) && isTownBlock(tileAt(grid,x,y+1))){
-    ctx.beginPath(); ctx.moveTo(X,Y+TS); ctx.arc(X,Y+TS,r,0.5*Math.PI,Math.PI); ctx.closePath(); ctx.fill();
-  }
-  if(isTownBlock(tileAt(grid,x+1,y)) && isTownBlock(tileAt(grid,x,y+1))){
-    ctx.beginPath(); ctx.moveTo(X+TS,Y+TS); ctx.arc(X+TS,Y+TS,r,0,0.5*Math.PI); ctx.closePath(); ctx.fill();
-  }
-}
 function drawTownTile(x,y,t){
-  const X=x*TS-camPX, Y=y*TS-camPY, h=hash(x,y), g=state.floor.grid;
+  const X=x*TS-camPX, Y=y*TS-camPY, h=hash(x,y);
   if(t===1){
-    ctx.fillStyle=(h%2)?TOWN.forest:TOWN.forestDk; ctx.fillRect(X,Y,TS,TS);
+    wobbleTile(x,y,(h%2)?TOWN.forest:TOWN.forestDk);
     ctx.fillStyle=TOWN.forestHi;
     ctx.beginPath(); ctx.arc(X+6+(h%8),Y+7+(h%6),3,0,Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(X+13+(h%5),Y+13+(h%6),2.6,0,Math.PI*2); ctx.fill();
     return;
   }
   if(t===5||t===4){
-    const col=(h%2===0)?TOWN.cobA:TOWN.cobB;
-    ctx.fillStyle=col; ctx.fillRect(X,Y,TS,TS);
-    roundTownCorners(g,x,y,X,Y,col);
+    wobbleTile(x,y,(h%2===0)?TOWN.cobA:TOWN.cobB);
     const stones=[[4,4],[13,3],[5,12],[14,13],[9,8],[3,16],[16,17]];
     for(let i=0;i<stones.length;i++){
       const sh=hash(x*7+i*31,y*13+i*17);
@@ -184,9 +197,7 @@ function drawTownTile(x,y,t){
     }
     return;
   }
-  const gcol=(h%2===0)?TOWN.grassA:TOWN.grassB;
-  ctx.fillStyle=gcol; ctx.fillRect(X,Y,TS,TS);
-  roundTownCorners(g,x,y,X,Y,gcol);
+  wobbleTile(x,y,(h%2===0)?TOWN.grassA:TOWN.grassB);
   if(h%3===0){
     ctx.globalAlpha=0.25; ctx.fillStyle=(h%2)?TOWN.grassB:TOWN.grassA;
     ctx.beginPath(); ctx.arc(X+6+(h%9),Y+9+(h%7),3.4,0,Math.PI*2); ctx.fill();
@@ -208,6 +219,19 @@ function drawTownTile(x,y,t){
 
 function drawDecor(d){
   const X=d.x*TS-camPX, Y=d.y*TS-camPY, W=d.w*TS, H=d.h*TS;
+  if(d.kind==='garden'){
+    ctx.fillStyle=TOWN.leaf;
+    ctx.beginPath(); ctx.arc(X+10,Y+12,5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=d.c;
+    ctx.beginPath(); ctx.arc(X+7,Y+9,1.6,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(X+13,Y+11,1.6,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(X+9,Y+14,1.6,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#ffe66b';
+    ctx.beginPath(); ctx.arc(X+7,Y+9,0.6,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(X+13,Y+11,0.6,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(X+9,Y+14,0.6,0,Math.PI*2); ctx.fill();
+    return;
+  }
   if(d.kind==='house'){
     const rh=Math.round(H*0.6);
     ctx.fillStyle='rgba(0,0,0,0.16)'; ctx.beginPath(); ctx.ellipse(X+W/2+2,Y+H+2,W/2+2,3,0,0,Math.PI*2); ctx.fill();

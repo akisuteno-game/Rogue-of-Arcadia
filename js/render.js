@@ -10,9 +10,19 @@ function updateCamera(player, snap){
   if(snap){ camPX=tx; camPY=ty; } else { camPX=lerp(camPX,tx,0.16); camPY=lerp(camPY,ty,0.16); }
 }
 
+// Plain flat fill. (A jittered-corner mesh was tried here, but straight
+// random edges just read as jagged/choppy rather than organic, so the tile
+// shape itself stays a clean square; roundedness instead comes from the
+// decor — trees, stones, the blob-shaped clearing/plaza, winding paths.)
+function wobbleTile(x,y,col){
+  const X=x*TS-camPX, Y=y*TS-camPY;
+  ctx.fillStyle=col;
+  ctx.fillRect(X,Y,TS,TS);
+}
+
 function drawWall(x,y){
   const g=state.floor.grid, X=x*TS-camPX, Y=y*TS-camPY;
-  ctx.fillStyle=PALETTE.wallLo; ctx.fillRect(X,Y,TS,TS);
+  wobbleTile(x,y,PALETTE.wallLo);
   const rowOffset=(y%2===0)?0:TS/2;
   ctx.fillStyle=PALETTE.mortar;
   ctx.fillRect(X,Y+TS/2-1,TS,1);
@@ -36,35 +46,17 @@ function drawWall(x,y){
     ctx.globalAlpha=flick; ctx.fillStyle=PALETTE.torchCore; ctx.fillRect(X+9,Y+TS-16,2,4); ctx.globalAlpha=1;
   }
 }
-function roundFloorCorners(grid,x,y,X,Y,color){
-  ctx.fillStyle=color;
-  const r=4.5;
-  if(tileAt(grid,x-1,y)===1 && tileAt(grid,x,y-1)===1){
-    ctx.beginPath(); ctx.moveTo(X,Y); ctx.arc(X,Y,r,Math.PI,1.5*Math.PI); ctx.closePath(); ctx.fill();
-  }
-  if(tileAt(grid,x+1,y)===1 && tileAt(grid,x,y-1)===1){
-    ctx.beginPath(); ctx.moveTo(X+TS,Y); ctx.arc(X+TS,Y,r,1.5*Math.PI,2*Math.PI); ctx.closePath(); ctx.fill();
-  }
-  if(tileAt(grid,x-1,y)===1 && tileAt(grid,x,y+1)===1){
-    ctx.beginPath(); ctx.moveTo(X,Y+TS); ctx.arc(X,Y+TS,r,0.5*Math.PI,Math.PI); ctx.closePath(); ctx.fill();
-  }
-  if(tileAt(grid,x+1,y)===1 && tileAt(grid,x,y+1)===1){
-    ctx.beginPath(); ctx.moveTo(X+TS,Y+TS); ctx.arc(X+TS,Y+TS,r,0,0.5*Math.PI); ctx.closePath(); ctx.fill();
-  }
-}
 function drawFloor(x,y,corridor){
-  const X=x*TS-camPX, Y=y*TS-camPY, h=hash(x,y), g=state.floor.grid;
+  const X=x*TS-camPX, Y=y*TS-camPY, h=hash(x,y);
   if(corridor){
     const col=(h%2===0)?PALETTE.corA:PALETTE.corB;
-    ctx.fillStyle=col; ctx.fillRect(X,Y,TS,TS);
-    roundFloorCorners(g,x,y,X,Y,col);
+    wobbleTile(x,y,col);
     ctx.fillStyle=PALETTE.corPath; ctx.fillRect(X+7,Y,6,TS);
     if(h%8===0){ ctx.fillStyle=PALETTE.crack; ctx.beginPath(); ctx.arc(X+3+(h%11),Y+4+(h%9),0.8,0,Math.PI*2); ctx.fill(); }
     return;
   }
   const fcol=(h%2===0)?PALETTE.floorA:PALETTE.floorB;
-  ctx.fillStyle=fcol; ctx.fillRect(X,Y,TS,TS);
-  roundFloorCorners(g,x,y,X,Y,fcol);
+  wobbleTile(x,y,fcol);
   if(h%5===0){
     ctx.fillStyle=PALETTE.crack;
     ctx.beginPath(); ctx.arc(X+3+(h%9),Y+4+(h%6),1,0,Math.PI*2); ctx.fill();
@@ -145,14 +137,8 @@ function drawCreatureAt(px,py,facing,bobAmt,parts,flashAmt,alpha,seed){
 
 function drawPlayerWeapon(ppx,ppy,p){
   const t=p.atkPulse;
-  let ang, px, py;
-  if(t>0.02){
-    ang = p.atkAngle-1.0+(1-t)*2.0;
-    px=ppx+Math.cos(p.atkAngle)*4; py=ppy+Math.sin(p.atkAngle)*4-2;
-  } else {
-    ang = p.facing>0 ? 0.55 : Math.PI-0.55;
-    px=ppx+p.facing*5; py=ppy-2;
-  }
+  const ang = p.atkAngle-1.0+(1-t)*2.0;
+  const px=ppx+Math.cos(p.atkAngle)*4, py=ppy+Math.sin(p.atkAngle)*4-2;
   ctx.save();
   ctx.translate(px,py); ctx.rotate(ang);
   ctx.fillStyle='#8a8f96'; ctx.fillRect(-3,-1.5,4,3);
@@ -173,7 +159,10 @@ function render(){
     sky.addColorStop(0,'#bfe8f7'); sky.addColorStop(1,'#eaf7d8');
     ctx.fillStyle=sky; ctx.fillRect(0,0,cv.width,cv.height);
     ctx.save(); ctx.scale(ZOOM,ZOOM);
-    drawTownWorld(f, sx, ex, sy, ey, ()=>{ drawCreatureAt(ppx,ppy,p.facing,1.2,playerParts,p.flash,1,p.x); drawPlayerWeapon(ppx,ppy+Math.sin(tick*0.15+p.x*3)*1.2,p); });
+    drawTownWorld(f, sx, ex, sy, ey, ()=>{
+      drawCreatureAt(ppx,ppy,p.facing,1.2,c=>playerParts(c,p.atkPulse>0.02),p.flash,1,p.x);
+      if(p.atkPulse>0.02) drawPlayerWeapon(ppx,ppy+Math.sin(tick*0.15+p.x*3)*1.2,p);
+    });
     ctx.restore();
     return;
   }
@@ -205,8 +194,8 @@ function render(){
     const partsFn=m.type==='goblin'?goblinParts:m.type==='bat'?batParts:m.type==='skeleton'?skeletonParts:ratParts;
     drawCreatureAt(mpx,mpy,m.facing,bobAmt,partsFn,m.flash,alpha,m.x);
   }
-  drawCreatureAt(ppx,ppy,p.facing,1.2,playerParts,p.flash,1,p.x);
-  drawPlayerWeapon(ppx,ppy+Math.sin(tick*0.15+p.x*3)*1.2,p);
+  drawCreatureAt(ppx,ppy,p.facing,1.2,c=>playerParts(c,p.atkPulse>0.02),p.flash,1,p.x);
+  if(p.atkPulse>0.02) drawPlayerWeapon(ppx,ppy+Math.sin(tick*0.15+p.x*3)*1.2,p);
   if(atkActive && atkHasAim){
     const ready=p.atkCd<=0;
     const col=ready?'#ffe27a':'#9a9aa0';

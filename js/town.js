@@ -13,8 +13,8 @@ const TOWN={
   flowers:['#ff8fa3','#ffd166','#ffffff','#b8a1ff']
 };
 
-function treeShape(){
-  return {seed:Math.random(), scale:0.75+Math.random()*0.6, lobes:2+Math.floor(Math.random()*3)};
+function treeShape(h){
+  return {seed:(h%100)/100, scale:0.75+((h>>3)%10)/10*0.6, lobes:2+((h>>7)%3)};
 }
 
 function carvePath(grid,ax,ay,bx,by,seed){
@@ -34,104 +34,93 @@ function carvePath(grid,ax,ay,bx,by,seed){
   }
 }
 
+// Arcadia is a hand-laid-out, fixed town (same every time) rather than a
+// randomized one: a tree-ringed clearing with a square at its heart, a
+// straight Main Street running north (dungeon) to south (spawn), and
+// houses lined up facing the street on both sides, Stardew-Valley style.
 function newTown(player){
   const grid=[]; for(let y=0;y<MH;y++) grid.push(new Array(MW).fill(1));
   const cx0=Math.floor(MW/2), cy0=Math.floor(MH/2);
-  const seedA=Math.random()*10, seedB=Math.random()*10;
-  const clearR=(ang)=>15*(1+0.34*Math.sin(ang*3+seedA)+0.16*Math.sin(ang*5+seedA*1.6));
-  const plazaR=(ang)=>6.5*(1+0.3*Math.sin(ang*4+seedB)+0.16*Math.sin(ang*7+seedB*1.3));
+  const clearR=(ang)=>16*(1+0.22*Math.sin(ang*3+1.1)+0.12*Math.sin(ang*5+2.6));
 
-  for(let ry=-17;ry<=17;ry++) for(let rx=-17;rx<=17;rx++){
+  for(let ry=-18;ry<=18;ry++) for(let rx=-18;rx<=18;rx++){
     const gx=cx0+rx, gy=cy0+ry; if(gx<1||gy<1||gx>=MW-1||gy>=MH-1) continue;
     const dist=Math.hypot(rx,ry), ang=Math.atan2(ry,rx);
     if(dist<clearR(ang)) grid[gy][gx]=6;
   }
-  for(let ry=-9;ry<=9;ry++) for(let rx=-9;rx<=9;rx++){
-    const gx=cx0+rx, gy=cy0+ry;
-    const dist=Math.hypot(rx,ry), ang=Math.atan2(ry,rx);
-    if(dist<plazaR(ang)) grid[gy][gx]=5;
-  }
 
   const decor=[]; const add=(kind,gx,gy,w,h,extra)=>decor.push(Object.assign({kind,x:gx,y:gy,w,h},extra||{}));
   const solid=(gx,gy,w,h)=>{ for(let j=0;j<h;j++) for(let i=0;i<w;i++){ if(grid[gy+j]) grid[gy+j][gx+i]=7; } };
+  const road=(gx,gy,w,h)=>{ for(let j=0;j<h;j++) for(let i=0;i<w;i++){ const yy=gy+j,xx=gx+i; if(grid[yy]&&grid[yy][xx]!==7&&grid[yy][xx]!==4) grid[yy][xx]=5; } };
 
-  // Angles of the roads are decided up front so houses can be kept clear of them.
-  const portalAng=-Math.PI/2+0.15;
-  const spawnAng=Math.PI/2-0.1;
-  const stallAng=0.7;
-  const reserved=[portalAng,spawnAng,stallAng];
-  function angDist(a,b){
-    let d=(a-b)%(Math.PI*2);
-    if(d>Math.PI) d-=Math.PI*2;
-    if(d<-Math.PI) d+=Math.PI*2;
-    return Math.abs(d);
-  }
-  const angleClear=(a)=>reserved.every(r=>angDist(a,r)>0.55);
-
-  // Houses are placed (and marked solid) BEFORE any road is carved, so every
-  // road below naturally skips over them instead of overlapping their footprint.
-  const HOUSE_COUNT=10;
-  const houseSpecs=[];
-  let baseAng=Math.random()*Math.PI*2;
-  for(let i=0;i<HOUSE_COUNT;i++){
-    let a=baseAng+i*(Math.PI*2/HOUSE_COUNT)+(Math.random()-0.5)*0.3, tries=0;
-    while(!angleClear(a) && tries<12){ a+=0.25; tries++; }
-    const big=Math.random()<0.3;
-    houseSpecs.push({ang:a, r:9.5+Math.random()*3.5, roof:i%TOWN.roofs.length, w:big?5:4, h:big?4:3});
-  }
-  const placed=[];
-  for(const hs of houseSpecs){
-    const cr=clearR(hs.ang), rr=Math.min(hs.r, cr-3);
-    const hx=Math.round(cx0+Math.cos(hs.ang)*rr-hs.w/2), hy=Math.round(cy0+Math.sin(hs.ang)*rr-hs.h/2);
-    let blocked=false;
-    for(const o of placed){ if(hx<o.x+o.w+1 && hx+hs.w+1>o.x && hy<o.y+o.h+1 && hy+hs.h+1>o.y){ blocked=true; break; } }
-    if(blocked) continue;
-    placed.push({x:hx,y:hy,w:hs.w,h:hs.h});
-    solid(hx,hy,hs.w,hs.h); add('house',hx,hy,hs.w,hs.h,{roof:TOWN.roofs[hs.roof]});
-    if(Math.random()<0.6){
-      const gx=hx-2, gy=hy+hs.h-1;
-      for(let gi=0;gi<3;gi++){
-        const fx=gx+gi, fy=gy+1;
-        if(grid[fy] && grid[fy][fx]===6){ add('garden',fx,fy,1,1,{c:TOWN.flowers[(gi+hs.roof)%TOWN.flowers.length]}); }
-      }
-    }
-  }
-
-  const portalDist=clearR(portalAng)+3.5;
-  const portalX=Math.round(cx0+Math.cos(portalAng)*portalDist), portalY=Math.round(cy0+Math.sin(portalAng)*portalDist);
-  grid[portalY][portalX]=4;
-  solid(portalX-2,portalY,1,1); add('pillar',portalX-2,portalY,1,1);
-  solid(portalX+2,portalY,1,1); add('pillar',portalX+2,portalY,1,1);
-  add('sign',portalX,portalY-1,1,1,{text:'迷宮の入り口'});
-  carvePath(grid,cx0,cy0,portalX,portalY+1,1.1);
-
-  const spawnDist=clearR(spawnAng)-2.5;
-  const spawnX=cx0+Math.cos(spawnAng)*spawnDist, spawnY=cy0+Math.sin(spawnAng)*spawnDist;
-  carvePath(grid,cx0,cy0,Math.round(spawnX),Math.round(spawnY),2.7);
+  // Main Street: a straight paved road running the full north-south length.
+  road(cx0-2,cy0-17,4,34);
+  // Town square around the fountain, where Main Street widens out.
+  road(cx0-7,cy0-7,14,14);
 
   add('fountain',cx0-1,cy0-1,2,2); solid(cx0-1,cy0-1,2,2);
-  const stallDist=plazaR(0.7)+2.5;
-  const stallX=Math.round(cx0+Math.cos(stallAng)*stallDist), stallY=Math.round(cy0+Math.sin(stallAng)*stallDist);
-  solid(stallX,stallY,3,1); add('stall',stallX,stallY,3,1);
-  carvePath(grid,cx0,cy0,stallX+1,stallY,0.4);
 
-  [[2.9,7],[4.9,6.5],[1.5,7.5],[0.85,6.3],[5.9,7]].forEach(([ang,r])=>{
-    const px=Math.round(cx0+Math.cos(ang)*r), py=Math.round(cy0+Math.sin(ang)*r);
+  // Dungeon gate: north end of Main Street.
+  const portalX=cx0, portalY=cy0-16;
+  grid[portalY][portalX]=4;
+  solid(portalX-3,portalY,1,2); add('pillar',portalX-3,portalY,1,1);
+  solid(portalX+2,portalY,1,2); add('pillar',portalX+2,portalY,1,1);
+  add('sign',portalX,portalY-1,1,1,{text:'迷宮の入り口'});
+
+  // Player spawns at the south end of Main Street.
+  const spawnX=cx0+0.5, spawnY=cy0+15.5;
+
+  // General store: a bigger building right on the square, so it reads as
+  // the town's landmark (like Pierre's in Stardew Valley).
+  const shopX=cx0-11, shopY=cy0-2;
+  solid(shopX,shopY,6,4); add('house',shopX,shopY,6,4,{roof:TOWN.roofs[3]});
+  add('sign',shopX+3,shopY-1,1,1,{text:'よろず屋'});
+  const stallX=shopX+6, stallY=shopY+2;
+  solid(stallX,stallY,3,1); add('stall',stallX,stallY,3,1);
+  road(stallX-1,stallY+1,5,2);
+
+  // Houses lined up facing Main Street, two tidy rows.
+  const houses=[
+    {dx:-11,dy:-14,w:4,h:3,roof:0}, {dx:7,dy:-14,w:4,h:3,roof:1},
+    {dx:-11,dy:-9, w:4,h:3,roof:2}, {dx:7,dy:-9, w:5,h:4,roof:4},
+    {dx:8,  dy:8,  w:4,h:3,roof:5}, {dx:-10,dy:8,w:4,h:3,roof:0},
+    {dx:-11,dy:13, w:5,h:4,roof:2}, {dx:7,  dy:13,w:4,h:3,roof:3}
+  ];
+  houses.forEach((h,i)=>{
+    const hx=cx0+h.dx, hy=cy0+h.dy;
+    solid(hx,hy,h.w,h.h); add('house',hx,hy,h.w,h.h,{roof:TOWN.roofs[h.roof]});
+    // Every house gets its own short side-street straight back to Main
+    // Street, so it's always reachable no matter how the forest edge falls.
+    const midY=hy+(h.h>>1);
+    if(h.dx>0) road(cx0+2, midY-1, hx-(cx0+2), 2);
+    else road(hx+h.w, midY-1, (cx0-2)-(hx+h.w), 2);
+    road(hx+(h.w>>1)-1,hy+h.h,2,2);
+    if(i%2===0){
+      const gx=hx+h.w, gy=hy+h.h-1;
+      for(let gi=0;gi<2;gi++){ if(grid[gy+gi]&&grid[gy+gi][gx]===6) add('garden',gx,gy+gi,1,1,{c:TOWN.flowers[(i+gi)%TOWN.flowers.length]}); }
+    }
+  });
+
+  // Lamps along the square.
+  [[-6,-6],[5,-6],[-6,5],[5,5]].forEach(([dx,dy])=>{
+    const px=cx0+dx, py=cy0+dy;
     if(grid[py] && grid[py][px]===5){ solid(px,py,1,1); add('lamp',px,py,1,1); }
   });
 
+  // Tree ring around the clearing's edge, plus a sprinkling just inside it.
   for(let ry=-19;ry<=19;ry++) for(let rx=-19;rx<=19;rx++){
     const gx=cx0+rx, gy=cy0+ry; if(gx<1||gy<1||gx>=MW-1||gy>=MH-1) continue;
     if(grid[gy][gx]!==1) continue;
     const dist=Math.hypot(rx,ry), ang=Math.atan2(ry,rx), edge=clearR(ang);
     const h=hash(gx,gy);
-    if(dist>edge && dist<edge+3.5 && h%3===0){ solid(gx,gy,1,1); add('tree',gx,gy,1,1,treeShape()); }
-    else if(dist>=edge+3.5 && dist<edge+9 && h%6===0){ solid(gx,gy,1,1); add('tree',gx,gy,1,1,treeShape()); }
+    if(dist>edge && dist<edge+3 && h%2===0){ solid(gx,gy,1,1); add('tree',gx,gy,1,1,treeShape(h)); }
+    else if(dist>=edge+3 && dist<edge+8 && h%5===0){ solid(gx,gy,1,1); add('tree',gx,gy,1,1,treeShape(h)); }
   }
-  for(let ry=-16;ry<=16;ry++) for(let rx=-16;rx<=16;rx++){
+  for(let ry=-17;ry<=17;ry++) for(let rx=-17;rx<=17;rx++){
     const gx=cx0+rx, gy=cy0+ry; if(!grid[gy] || grid[gy][gx]!==6) continue;
     const dist=Math.hypot(rx,ry), ang=Math.atan2(ry,rx), edge=clearR(ang);
-    if(edge-dist<2.2 && hash(gx,gy)%8===0){ solid(gx,gy,1,1); add('tree',gx,gy,1,1,treeShape()); }
+    const h=hash(gx,gy);
+    if(edge-dist<2 && h%11===0){ solid(gx,gy,1,1); add('tree',gx,gy,1,1,treeShape(h)); }
   }
 
   const npcs=[{
@@ -142,9 +131,9 @@ function newTown(player){
 
   const critters=[];
   for(let i=0;i<8;i++){
-    const a=Math.random()*Math.PI*2, r=4+Math.random()*10;
-    critters.push({cx:cx0+Math.cos(a)*r, cy:cy0+Math.sin(a)*r, rx:2+Math.random()*3, ry:1.5+Math.random()*2,
-      sx:0.4+Math.random()*0.5, sy:0.5+Math.random()*0.5, ph:Math.random()*6.28, t:Math.random()*10, x:0, y:0,
+    const a=(i/8)*Math.PI*2, r=5+((i*37)%9);
+    critters.push({cx:cx0+Math.cos(a)*r, cy:cy0+Math.sin(a)*r, rx:2+(i%3), ry:1.5+(i%2),
+      sx:0.5+(i%3)*0.15, sy:0.6+(i%2)*0.2, ph:i*0.9, t:i*1.3, x:0, y:0,
       color:TOWN.flowers[i%TOWN.flowers.length]});
   }
 

@@ -11,8 +11,11 @@ function playerParts(c, hideSword){
   c.fillStyle=PALETTE.playerArmor; c.fillRect(-4,-11,8,3); c.fillRect(-4,-9,2,3);
   c.fillStyle='#2a2016'; c.fillRect(-2,-7,1,1); c.fillRect(1,-7,1,1);
   if(!hideSword){
-    c.fillStyle='#8a8f96'; c.fillRect(5,-8,2,3);
-    c.fillStyle='#cfd6dd'; c.fillRect(5,-6,2,12);
+    c.save();
+    c.translate(6,0); c.rotate(0.5);
+    c.fillStyle='#8a8f96'; c.fillRect(-1,-3,2,3);
+    c.fillStyle='#cfd6dd'; c.fillRect(-1,-13,2,10);
+    c.restore();
   }
 }
 // While actually swinging (atkPulse>0), the sword above is hidden and
